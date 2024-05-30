@@ -5,8 +5,9 @@ import (
 	"fmt"
 	proto "go-grpc-prac/proto"
 	"io"
+	"log"
 	"net/http"
-	"time"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"google.golang.org/grpc"
@@ -28,24 +29,38 @@ func main() {
 }
 
 func clientConnectionServer(c *gin.Context) {
-	stream, err := client.ServerReply(context.TODO(), &proto.HelloRequest{SomeString: "Hiiii"})
+	stream, err := client.ServerReply(context.TODO())
 
 	if err != nil {
 		fmt.Println("Something error")
 		return
 	}
-	count := 0
+	send, receive := 0, 0
+	for i := 0; i < 10; i++ {
+		err := stream.Send(&proto.HelloRequest{
+			SomeString: "message " + strconv.Itoa(i+1) + " from clients",
+		})
+		if err != nil {
+			fmt.Println("failed to send message from client")
+			return
+		}
+		send++
+	}
+
+	if err := stream.CloseSend(); err != nil {
+		log.Println(err)
+	}
 	for {
 		message, err := stream.Recv()
 		if err == io.EOF {
 			break
 		}
 		fmt.Println("Server response: ", message)
-		time.Sleep(2 * time.Second)
-		count++
+		receive++
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message_count": count,
+		"message_sent":     send,
+		"message_received": receive,
 	})
 }

@@ -1,10 +1,12 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	proto "go-grpc-prac/proto"
+	"io"
 	"net"
-	"time"
+	"strconv"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
@@ -29,22 +31,21 @@ func main() {
 	}
 }
 
-func (s *server) ServerReply(req *proto.HelloRequest, strem proto.Example_ServerReplyServer) error {
-	fmt.Println(req.SomeString)
-	time.Sleep(5 * time.Second)
-	reply := []*proto.HelloResponse{
-		{Reply: "hello1"},
-		{Reply: "hello2"},
-		{Reply: "hello3"},
-		{Reply: "hello4"},
-		{Reply: "hello5"},
-		{Reply: "hello6"},
-	}
-	for _, msg := range reply {
-		err := strem.Send(msg)
+func (s *server) ServerReply(strem proto.Example_ServerReplyServer) error {
+	for i := 0; i < 5; i++ {
+		err := strem.Send(&proto.HelloResponse{
+			Reply: "message " + strconv.Itoa(i+1) + " from servers",
+		})
 		if err != nil {
-			return err
+			return errors.New("unable to send data from server ")
 		}
+	}
+	for {
+		req, err := strem.Recv()
+		if err == io.EOF {
+			break
+		}
+		fmt.Println(req.SomeString)
 	}
 	return nil
 }

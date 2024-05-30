@@ -3,9 +3,8 @@ package main
 import (
 	"fmt"
 	proto "go-grpc-prac/proto"
-	"io"
 	"net"
-	"strconv"
+	"time"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
@@ -30,20 +29,22 @@ func main() {
 	}
 }
 
-func (s *server) ServerReply(stream proto.Example_ServerReplyServer) error {
-	total := 0
-	for {
-		request, err := stream.Recv()
-		if err == io.EOF {
-			return stream.SendAndClose(&proto.HelloResponse{
-				Reply: strconv.Itoa(total),
-			})
-		}
+func (s *server) ServerReply(req *proto.HelloRequest, strem proto.Example_ServerReplyServer) error {
+	fmt.Println(req.SomeString)
+	time.Sleep(5 * time.Second)
+	reply := []*proto.HelloResponse{
+		{Reply: "hello1"},
+		{Reply: "hello2"},
+		{Reply: "hello3"},
+		{Reply: "hello4"},
+		{Reply: "hello5"},
+		{Reply: "hello6"},
+	}
+	for _, msg := range reply {
+		err := strem.Send(msg)
 		if err != nil {
 			return err
 		}
-
-		total++
-		fmt.Println(request)
 	}
+	return nil
 }

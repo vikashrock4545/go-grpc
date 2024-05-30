@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	proto "go-grpc-prac/proto"
 	"net/http"
 
@@ -20,17 +21,39 @@ func main() {
 	client = proto.NewExampleClient(conn)
 	// implement rest-api
 	r := gin.Default()
-	r.GET("/send-message-to-server/:message", clientConnectionServer)
+	r.GET("/send", clientConnectionServer)
 	r.Run(":8000")
 }
 
 func clientConnectionServer(c *gin.Context) {
-	variableName := c.Param("message")
+	req := []*proto.HelloRequest{
+		{SomeString: "Request 1"},
+		{SomeString: "Request 2"},
+		{SomeString: "Request 3"},
+		{SomeString: "Request 4"},
+		{SomeString: "Request 5"},
+		{SomeString: "Request 6"},
+		{SomeString: "Request 7"},
+	}
 
-	req := &proto.HelloRequest{SomeString: variableName}
-
-	client.ServerReply(context.TODO(), req)
+	stream, err := client.ServerReply(context.TODO())
+	if err != nil {
+		fmt.Println("Something error")
+		return
+	}
+	for _, re := range req {
+		err = stream.Send(re)
+		if err != nil {
+			fmt.Println("request not fulfilled")
+			return
+		}
+	}
+	response, err := stream.CloseAndRecv()
+	if err != nil {
+		fmt.Println("there is some error ", err)
+		return
+	}
 	c.JSON(http.StatusOK, gin.H{
-		"message": "message sent successfully to server " + variableName,
+		"message_count": response,
 	})
 }

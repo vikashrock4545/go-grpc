@@ -11,7 +11,7 @@ message HelloResponse {
 }
 
 service Example {
-  rpc ServerReply(HelloRequest) returns (HelloResponse);
+  rpc ServerReply(stream HelloRequest) returns (HelloResponse);
 }
 
 
